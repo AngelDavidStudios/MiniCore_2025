@@ -33,6 +33,7 @@ public class VentaController: ControllerBase
         return Ok(venta);
     }
     
+    /*
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] Venta venta)
     {
@@ -44,7 +45,9 @@ public class VentaController: ControllerBase
         await _ventaRepository.AddVentaAsync(venta);
         return CreatedAtAction(nameof(Get), new { id = venta.ID_Venta }, venta);
     }
+    */
     
+    /*
     [HttpPut("{id}")]
     public async Task<IActionResult> Put(string id, [FromBody] Venta venta)
     {
@@ -56,7 +59,9 @@ public class VentaController: ControllerBase
         await _ventaRepository.UpdateVentaAsync(id, venta);
         return NoContent();
     }
+    */
     
+    /*
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
@@ -68,4 +73,6 @@ public class VentaController: ControllerBase
         await _ventaRepository.DeleteVentaAsync(id);
         return NoContent();
     }
+    */
+    
 }
