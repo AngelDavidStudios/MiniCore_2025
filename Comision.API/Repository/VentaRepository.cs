@@ -7,9 +7,9 @@ namespace Comision.API.Repository;
 
 public class VentaRepository: IVentaRepository
 {
-    private readonly DynamoDBContext _context;
+    private readonly IDynamoDBContext _context;
     
-    public VentaRepository(DynamoDBContext context)
+    public VentaRepository(IDynamoDBContext context)
     {
         _context = context;
     }
@@ -35,6 +35,7 @@ public class VentaRepository: IVentaRepository
             throw new ArgumentNullException(nameof(venta));
         }
         
+        venta.ID_Venta = Guid.NewGuid().ToString();
         await _context.SaveAsync(venta);
     }
     
@@ -50,7 +51,13 @@ public class VentaRepository: IVentaRepository
             throw new ArgumentNullException(nameof(venta));
         }
         
-        venta.ID_Venta = id;
+        var existingVenta = await GetVentaByIdAsync(id);
+        if (existingVenta == null)
+        {
+            throw new Exception("Venta not found");
+        }
+        
+        venta.ID_Venta = id; // Ensure the ID remains the same
         await _context.SaveAsync(venta);
     }
     
