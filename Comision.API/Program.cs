@@ -3,6 +3,8 @@ using Amazon.DynamoDBv2.DataModel;
 using Comision.API.Models;
 using Comision.API.Repository;
 using Comision.API.Repository.Interfaces;
+using Comision.API.Services;
+using Comision.API.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +15,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddCors();
 
-//Services
+//Services AWS
 var awsOptions = builder.Configuration.GetAWSOptions();
 awsOptions.Profile = "AdminAccess";
 builder.Services.AddDefaultAWSOptions(awsOptions);
@@ -24,6 +26,9 @@ builder.Services.AddScoped<IDynamoDBContext, DynamoDBContext>();
 builder.Services.AddScoped<IRepository<Vendedor>, VendedorRepository>();
 builder.Services.AddScoped<IRepository<Regla>, RulerRepository>();
 builder.Services.AddScoped<IVentaRepository, VentaRepository>();
+
+// Services
+builder.Services.AddScoped<IComisionService, ComisionService>();
 
 var app = builder.Build();
 
