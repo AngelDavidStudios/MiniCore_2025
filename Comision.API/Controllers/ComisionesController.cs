@@ -17,7 +17,7 @@ public class ComisionesController: ControllerBase
         _comisionService = comisionService;
     }
     
-    [HttpGet("Comisiones")]
+    [HttpGet]
     public async Task<IActionResult> GetComisiones([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFin)
     {
         if (fechaInicio > fechaFin)
