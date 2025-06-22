@@ -100,7 +100,7 @@ jobs:
       - name: Publish self-contained
         id: publish
         run: |
-          dotnet publish MiniCore.API/Comision.API.csproj \
+          dotnet publish Comision.API/Comision.API.csproj \
             -c Release \
             -o ./publish
           echo "path=./publish" >> "$GITHUB_OUTPUT"
