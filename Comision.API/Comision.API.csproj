@@ -4,12 +4,13 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <AWSProjectType>Lambda</AWSProjectType>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="9.1.2" />
-        <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="1.8.2" />
+        <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="9.1.1" />
+        <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="1.8.1" />
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.1.7" />
         <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.1" />
         <PackageReference Include="AWSSDK.SSO" Version="4.0.0.9" />

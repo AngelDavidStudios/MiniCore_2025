@@ -15,6 +15,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddCors();
 
+// Add AWS Lambda hosting
+builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
+
 //Services AWS
 var awsOptions = builder.Configuration.GetAWSOptions();
 awsOptions.Profile = "AdminAccess";
