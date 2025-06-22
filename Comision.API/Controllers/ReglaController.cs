@@ -33,6 +33,7 @@ public class ReglaController: ControllerBase
         return Ok(regla);
     }
     
+    /*
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] Regla regla)
     {
@@ -43,6 +44,7 @@ public class ReglaController: ControllerBase
         await _reglaRepository.AddAsync(regla);
         return CreatedAtAction(nameof(Get), new { id = regla.ID_Regla }, regla);
     }
+    */
     
     /*
     [HttpPut("{id}")]
@@ -58,10 +60,13 @@ public class ReglaController: ControllerBase
     }
     */
     
+    /*
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
         await _reglaRepository.DeleteAsync(id);
         return NoContent();
     }
+    */
+    
 }
