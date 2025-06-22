@@ -1,0 +1,166 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# This workflow will build, test, sign and package a WPF or Windows Forms desktop application
+# built on .NET Core.
+# To learn how to migrate your existing application to .NET Core,
+# refer to https://docs.microsoft.com/en-us/dotnet/desktop-wpf/migration/convert-project-from-net-framework
+#
+# To configure this workflow:
+#
+# 1. Configure environment variables
+# GitHub sets default environment variables for every workflow run.
+# Replace the variables relative to your project in the "env" section below.
+#
+# 2. Signing
+# Generate a signing certificate in the Windows Application
+# Packaging Project or add an existing signing certificate to the project.
+# Next, use PowerShell to encode the .pfx file using Base64 encoding
+# by running the following Powershell script to generate the output string:
+#
+# $pfx_cert = Get-Content '.\SigningCertificate.pfx' -Encoding Byte
+# [System.Convert]::ToBase64String($pfx_cert) | Out-File 'SigningCertificate_Encoded.txt'
+#
+# Open the output file, SigningCertificate_Encoded.txt, and copy the
+# string inside. Then, add the string to the repo as a GitHub secret
+# and name it "Base64_Encoded_Pfx."
+# For more information on how to configure your signing certificate for
+# this workflow, refer to https://github.com/microsoft/github-actions-for-desktop-apps#signing
+#
+# Finally, add the signing certificate password to the repo as a secret and name it "Pfx_Key".
+# See "Build the Windows Application Packaging project" below to see how the secret is used.
+#
+# For more information on GitHub Actions, refer to https://github.com/features/actions
+# For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
+# refer to https://github.com/microsoft/github-actions-for-desktop-app
+
+name: CI/CD API
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  AWS_REGION: us-east-1
+  CONTAINER_NAME: minicore-api
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+  checkout:
+    name: 1️⃣ Checkout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+  build:
+    name: 2️⃣ Build
+    needs: checkout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Restore + Build
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+
+  test:
+    name: 3️⃣ Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Run unit tests
+        run: dotnet test --no-build --verbosity normal
+
+  package:
+    name: 4️⃣ Package
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      publish_path: ${{ steps.publish.outputs.path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Publish self-contained
+        id: publish
+        run: |
+          dotnet publish MiniCore.API/Comision.API.csproj \
+            -c Release \
+            -o ./publish
+          echo "path=./publish" >> "$GITHUB_OUTPUT"
+      - name: Archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api_publish
+          path: ./publish
+
+  deploy:
+    name: 5️⃣ Deploy to EC2
+    needs: package
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      
+      - name: Configure credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::462977977700:role/mini-core-2025-role-pipeline
+          aws-region: ${{env.AWS_REGION}}
+
+      - name: Login to ECR repo
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag and push image to ecr
+        env:
+          REGISTRY: ${{steps.login-ecr.outputs.registry}}
+          REPOSITORY: minicore-comisiones
+          IMAGE_TAG: ${{github.sha}}
+        run: |-
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to EC2
+        env:
+          REPOSITORY: minicore-comisiones
+          REGISTRY: ${{steps.login-ecr.outputs.registry}}
+          IMAGE_TAG: ${{github.sha}}
+          EC2_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+          HOSTNAME: ${{secrets.HOST}}
+          USER_NAME: ${{secrets.USERNAME}}
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{env.HOSTNAME}}
+          port: 22
+          key: ${{env.EC2_PRIVATE_KEY}}
+          username: ${{env.USER_NAME}}
+          envs: REGISTRY, REPOSITORY, IMAGE_TAG, AWS_REGION, CONTAINER_NAME
+          script: |-
+              aws ecr get-login-password --region $AWS_REGION | sudo docker login --username AWS --password-stdin $REGISTRY
+              sudo docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
+              if sudo docker ps -a --format '{{.Names}}' | grep -w "$CONTAINER_NAME" > /dev/null; then
+                  echo "Container '$CONTAINER_NAME' exists. Stopping..."
+                  sudo docker stop "$CONTAINER_NAME"
+                  sudo docker rm "$CONTAINER_NAME"
+              else
+                  echo "Container does not exist. No action taken."
+              fi
+              sudo docker run -d --name $CONTAINER_NAME -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Development $REGISTRY/$REPOSITORY:$IMAGE_TAG
