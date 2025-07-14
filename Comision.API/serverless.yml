@@ -1,0 +1,35 @@
+service: minicore-comision-api
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: dotnet8
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  profile: default
+  environment:
+    USERS_TABLE: ${self:resources.Resources.UsersTable.Properties.TableName}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [UsersTable, Arn]
+
+package:
+  artifact: bin/Release/net8.0/publish/minicoreApi.zip
+
+functions:
+  api:
+    handler: Comision.API::Comision.API.LambdaEntryPoint::FunctionHandlerAsync
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
